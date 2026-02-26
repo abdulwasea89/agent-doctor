@@ -1,7 +1,21 @@
 #!/usr/bin/env node
-import { Command } from "commander";
+
+// Load .env from the monorepo root (two levels up from dist/)
+// e.g. packages/agent-doctor/dist/cli.js → root is ../../../
+import * as dotenv from "dotenv";
 import * as path from "path";
 import * as fs from "fs";
+
+// Try root-level .env first, then cwd
+const rootEnv = path.resolve(__dirname, "../../../.env");
+const cwdEnv = path.resolve(process.cwd(), ".env");
+if (fs.existsSync(rootEnv)) {
+  dotenv.config({ path: rootEnv });
+} else if (fs.existsSync(cwdEnv)) {
+  dotenv.config({ path: cwdEnv });
+}
+
+import { Command } from "commander";
 import { loadConfig } from "./config";
 import { runEngine } from "./engine";
 import { calculateScore } from "./scorer";

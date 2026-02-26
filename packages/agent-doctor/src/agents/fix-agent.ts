@@ -1,50 +1,56 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { Agent } = require("@mastra/core/agent") as { Agent: new (cfg: Record<string, unknown>) => { generate: (prompt: string) => Promise<{ text: string }> } };
-import { createAnthropic } from "@ai-sdk/anthropic";
-import { createOpenAI } from "@ai-sdk/openai";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createGroq } from "@ai-sdk/groq";
 import type { DiagnoseResult, Diagnostic } from "../types";
 
-// Build the LLM — prefer Anthropic, fall back to OpenAI
+type MastraAgent = { generate: (prompt: string) => Promise<{ text: string }> };
+
 function buildModel() {
-  if (process.env.ANTHROPIC_API_KEY) {
-    const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-    return anthropic("claude-opus-4-6");
+  // Priority: Gemini → Groq
+  if (process.env.GEMINI_API_KEY) {
+    const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
+    return google("gemini-2.0-flash");
   }
-  if (process.env.OPENAI_API_KEY) {
-    const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    return openai("gpt-4o");
+  if (process.env.GROQ_API_KEY) {
+    const groq = createGroq({ apiKey: process.env.GROQ_API_KEY });
+    return groq("llama-3.3-70b-versatile");
   }
   return null;
 }
 
-const SYSTEM_PROMPT = `You are agent-doctor's AI fix assistant — an expert in:
+const SYSTEM_PROMPT = `You are agent-doctor's AI fix assistant — a world-class expert in:
 
-- AI agent architecture (LangChain, CrewAI, AutoGen, Mastra, MCP, LlamaIndex)
-- Production AI agent security: prompt injection, SSRF, secret management, output validation
-- Agent deployment: Docker, Kubernetes, CI/CD, blue-green, graceful shutdown
-- Agent reliability: retries, circuit breakers, max_iterations, timeouts, checkpointing
-- Agent observability: OpenTelemetry, Langfuse, Langsmith, structured logging, tracing
-- Compliance: OWASP Agentic Top 10, GDPR, HIPAA, PCI-DSS, AI transparency
-- Memory backends: Redis, Pinecone, Chroma, pgvector — TTL, persistence, health checks
-- Model providers: OpenAI, Anthropic, Google, Ollama — cost tracking, fallbacks, token limits
+- AI agent architecture: LangChain, CrewAI, AutoGen, Mastra, MCP, LlamaIndex, custom agents
+- Production AI agent security: prompt injection, SSRF, secret management, output validation, OWASP Agentic Top 10
+- Agent deployment: Docker best practices, Kubernetes, CI/CD pipelines, blue-green deployments, graceful shutdown
+- Agent reliability: retry strategies, circuit breakers, max_iterations guards, timeouts, checkpointing, fallbacks
+- Agent observability: OpenTelemetry, Langfuse, Langsmith, structured logging, distributed tracing, cost tracking
+- Compliance: GDPR, HIPAA, PCI-DSS, AI transparency laws, NIST AI RMF
+- Memory backends: Redis TTL/persistence, Pinecone, Chroma, pgvector — connection health, data retention
+- LLM providers: OpenAI, Anthropic, Google Gemini, Ollama — token limits, cost optimisation, fallback routing
 
-When given a diagnostic finding, you:
-1. Explain WHY it is a problem in 1-2 sentences
-2. Give a concrete code fix (TypeScript or Python depending on the project)
-3. Link to the relevant best practice or spec (OWASP, NIST, etc.) if applicable
+When given a diagnostic finding:
+1. Explain WHY it is dangerous or risky (1-2 sentences, be direct)
+2. Provide a concrete, copy-paste code fix in the project's language (TypeScript or Python)
+3. Reference the relevant standard or spec if applicable (OWASP, NIST, CWE, etc.)
 
-Be specific, practical, and brief. No fluff. Do not repeat the issue title.`;
+Be specific, practical, and concise. No filler text.`;
 
-export function createFixAgent(): ReturnType<typeof Agent> | null {
+export function createFixAgent(): MastraAgent | null {
   const model = buildModel();
   if (!model) return null;
 
-  return new Agent({
-    name: "agent-doctor-fix",
-    id: "agent-doctor-fix",
-    instructions: SYSTEM_PROMPT,
-    model,
-  });
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any
+    const { Agent } = require("@mastra/core/agent") as any;
+    return new Agent({
+      name: "agent-doctor-fix",
+      id: "agent-doctor-fix",
+      instructions: SYSTEM_PROMPT,
+      model,
+    }) as MastraAgent;
+  } catch {
+    return null;
+  }
 }
 
 export async function generateFixes(
@@ -52,39 +58,35 @@ export async function generateFixes(
   fileSnippets: Map<string, string>
 ): Promise<Map<string, string>> {
   const agent = createFixAgent();
-  if (!agent) {
-    return new Map();
-  }
+  if (!agent) return new Map();
 
   const fixes = new Map<string, string>();
 
-  // Only fix errors and top warnings (limit to 5 to control cost)
   const toFix: Diagnostic[] = [
     ...result.diagnostics.filter((d) => d.severity === "error"),
     ...result.diagnostics.filter((d) => d.severity === "warn"),
   ]
-    .filter((d, i, arr) => arr.findIndex((x) => x.ruleId === d.ruleId) === i) // unique by rule
+    .filter((d, i, arr) => arr.findIndex((x) => x.ruleId === d.ruleId) === i)
     .slice(0, 5);
 
   for (const diag of toFix) {
     const snippet = diag.file ? fileSnippets.get(diag.file) ?? "" : "";
-    const truncated = snippet.slice(0, 1500); // keep context small
+    const context = snippet.slice(0, 1500);
 
-    const prompt = `
-Project: ${result.projectInfo.framework} / ${result.projectInfo.language}
-Issue: [${diag.ruleId}] ${diag.title}
-File: ${diag.file ?? "N/A"}${diag.line ? ` line ${diag.line}` : ""}
-Suggested remediation: ${diag.remediation}
-
-${truncated ? `Relevant code:\n\`\`\`\n${truncated}\n\`\`\`` : ""}
-
-Please provide a fix.`.trim();
+    const prompt = [
+      `Project: ${result.projectInfo.framework} / ${result.projectInfo.language}`,
+      `Issue: [${diag.ruleId}] ${diag.title}`,
+      `File: ${diag.file ?? "N/A"}${diag.line ? ` line ${diag.line}` : ""}`,
+      `Suggested remediation: ${diag.remediation}`,
+      context ? `\nRelevant code:\n\`\`\`\n${context}\n\`\`\`` : "",
+      "\nProvide your fix:",
+    ].filter(Boolean).join("\n");
 
     try {
       const response = await agent.generate(prompt);
       fixes.set(diag.ruleId, response.text);
     } catch {
-      // silently skip if AI fails
+      // silently skip if AI call fails
     }
   }
 
