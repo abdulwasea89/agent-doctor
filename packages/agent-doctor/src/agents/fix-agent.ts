@@ -1,4 +1,5 @@
-import { Agent } from "@mastra/core/agent";
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { Agent } = require("@mastra/core/agent") as { Agent: new (cfg: Record<string, unknown>) => { generate: (prompt: string) => Promise<{ text: string }> } };
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 import type { DiagnoseResult, Diagnostic } from "../types";
@@ -34,7 +35,7 @@ When given a diagnostic finding, you:
 
 Be specific, practical, and brief. No fluff. Do not repeat the issue title.`;
 
-export function createFixAgent(): Agent | null {
+export function createFixAgent(): ReturnType<typeof Agent> | null {
   const model = buildModel();
   if (!model) return null;
 
@@ -43,7 +44,7 @@ export function createFixAgent(): Agent | null {
     id: "agent-doctor-fix",
     instructions: SYSTEM_PROMPT,
     model,
-  } as Parameters<typeof Agent>[0]);
+  });
 }
 
 export async function generateFixes(

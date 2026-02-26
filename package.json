@@ -1,16 +1,21 @@
 {
-  "name": "agent-doctor",
+  "name": "agent-doctor-workspace",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "agent-doctor monorepo — diagnose and harden your AI agents before they hit production.",
+  "private": true,
+  "workspaces": ["packages/*"],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "npm run build --workspace=packages/agent-doctor",
+    "dev": "npm run dev --workspace=packages/agent-doctor",
+    "start": "node packages/agent-doctor/dist/cli.js",
+    "doctor": "node packages/agent-doctor/dist/cli.js",
+    "clean": "rm -rf packages/agent-doctor/dist packages/agent-doctor/*.tsbuildinfo",
+    "install:all": "npm install"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "type": "commonjs",
-  "workspaces": ["packages/*"],
   "devDependencies": {
     "@types/node": "^25.3.0",
     "ts-node": "^10.9.2",
