@@ -95,7 +95,7 @@ program
 
       // --fix: run Mastra AI agent to generate fix suggestions
       if (opts.fix) {
-        const hasKey = process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY;
+        const hasKey = process.env.GEMINI_API_KEY || process.env.GROQ_API_KEY || process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY;
         if (!hasKey) {
           console.error("  ✖ --fix requires ANTHROPIC_API_KEY or OPENAI_API_KEY to be set.");
         } else {

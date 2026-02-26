@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "agent-doctor monorepo — diagnose and harden your AI agents before they hit production.",
   "private": true,
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "build": "npm run build --workspace=packages/agent-doctor",
     "dev": "npm run dev --workspace=packages/agent-doctor",
@@ -20,5 +22,8 @@
     "@types/node": "^25.3.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "ink": "^6.8.0"
   }
 }
