@@ -72,6 +72,7 @@ export interface DiagnoseResult {
   deadTools: DeadTool[];
   projectInfo: ProjectInfo;
   durationMs: number;
+  files?: number; // total files scanned
 }
 
 export interface DiagnoseOptions {

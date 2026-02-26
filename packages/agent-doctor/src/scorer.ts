@@ -18,7 +18,8 @@ export function calculateScore(
   diagnostics: Diagnostic[],
   deadTools: DeadTool[],
   projectInfo: ProjectInfo,
-  durationMs: number
+  durationMs: number,
+  fileCount?: number
 ): DiagnoseResult {
   const categories = Object.keys(WEIGHTS) as Category[];
 
@@ -55,6 +56,7 @@ export function calculateScore(
     label,
     dimensions,
     diagnostics,
+    files: fileCount,
     deadTools,
     projectInfo,
     durationMs,

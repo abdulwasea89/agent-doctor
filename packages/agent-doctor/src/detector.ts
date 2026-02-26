@@ -146,7 +146,7 @@ async function detectToolCount(projectPath: string): Promise<number> {
   const ext = `{${SOURCE_EXTENSIONS.join(",")}}`;
   const files = await glob(`**/*.${ext}`, {
     cwd: projectPath,
-    ignore: ["node_modules/**", "dist/**", ".git/**", "__pycache__/**"],
+    ignore: ["**/node_modules/**", "**/dist/**", "**/.git/**", "**/__pycache__/**", "**/*.d.ts"],
     nodir: true,
   });
 
@@ -179,9 +179,18 @@ async function detectToolCount(projectPath: string): Promise<number> {
 
 export async function loadProjectFiles(projectPath: string): Promise<Map<string, string>> {
   const ext = `{${SOURCE_EXTENSIONS.join(",")}}`;
+  const IGNORE = [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/.git/**",
+    "**/__pycache__/**",
+    "**/*.min.js",
+    "**/*.d.ts",
+  ];
+
   const files = await glob(`**/*.${ext}`, {
     cwd: projectPath,
-    ignore: ["node_modules/**", "dist/**", ".git/**", "__pycache__/**", "*.min.js"],
+    ignore: IGNORE,
     nodir: true,
   });
 
@@ -190,7 +199,7 @@ export async function loadProjectFiles(projectPath: string): Promise<Map<string,
     "**/{Dockerfile,docker-compose.yml,docker-compose.yaml,.env,.env.*,*.yaml,*.yml,*.json,*.toml,*.ini,Makefile,requirements*.txt,pyproject.toml}",
     {
       cwd: projectPath,
-      ignore: ["node_modules/**", "dist/**", ".git/**", "package-lock.json"],
+      ignore: [...IGNORE, "**/package-lock.json", "**/yarn.lock"],
       nodir: true,
     }
   );

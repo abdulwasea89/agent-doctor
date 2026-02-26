@@ -1,20 +1,40 @@
 import type { DiagnoseResult, Diagnostic } from "../types";
 
-// chalk v5 is ESM-only; we use dynamic import to work in CommonJS
 let chalk: typeof import("chalk").default | null = null;
-
 async function getChalk() {
-  if (!chalk) {
-    const mod = await import("chalk");
-    chalk = mod.default;
-  }
+  if (!chalk) chalk = (await import("chalk")).default;
   return chalk;
 }
 
-function progressBar(score: number, width = 20): string {
+const BOX_WIDTH = 54; // inner content width (between │ │)
+
+function pad(str: string, width: number): string {
+  // Strip ANSI codes to measure visible length
+  const visible = str.replace(/\x1b\[[0-9;]*m/g, "");
+  const spaces = Math.max(0, width - visible.length);
+  return str + " ".repeat(spaces);
+}
+
+function boxLine(inner: string): string {
+  return `  │ ${pad(inner, BOX_WIDTH)} │`;
+}
+
+function boxBlank(): string {
+  return `  │ ${" ".repeat(BOX_WIDTH)} │`;
+}
+
+function boxTop(): string {
+  return `  ┌${"─".repeat(BOX_WIDTH + 2)}┐`;
+}
+
+function boxBottom(): string {
+  return `  └${"─".repeat(BOX_WIDTH + 2)}┘`;
+}
+
+function buildProgressBar(score: number, width = 48): string {
   const filled = Math.round((score / 100) * width);
   const empty = width - filled;
-  return "[" + "=".repeat(filled) + " ".repeat(empty) + "]";
+  return "█".repeat(filled) + "░".repeat(empty);
 }
 
 function groupByRule(diagnostics: Diagnostic[]): Map<string, Diagnostic[]> {
@@ -32,68 +52,89 @@ export async function renderTerminal(
 ): Promise<void> {
   const c = await getChalk();
 
-  console.log();
-  console.log(c.bold("  agent-doctor"));
-  console.log(c.dim("  Diagnose and harden your AI agents before they hit production."));
-  console.log();
-
   const errors = result.diagnostics.filter((d) => d.severity === "error");
   const warnings = result.diagnostics.filter((d) => d.severity === "warn");
+  const totalIssues = errors.length + warnings.length;
+  const fileCount = new Set(
+    result.diagnostics.filter((d) => d.file).map((d) => d.file)
+  ).size;
+  const totalFiles = result.files ?? fileCount;
+  const durationSec = (result.durationMs / 1000).toFixed(0) + "ms";
+
+  // ── Issue list (outside box) ─────────────────────────────
+  console.log();
 
   const grouped = groupByRule(result.diagnostics);
-
-  for (const [ruleId, diags] of grouped) {
+  for (const [, diags] of grouped) {
     const first = diags[0];
     const isError = first.severity === "error";
-    const icon = isError ? c.red("> X") : c.yellow("> !");
+    const icon = isError ? c.red("✖") : c.yellow("⚠");
     const count = diags.length;
+    console.log(` ${icon} ${c.bold(first.title)} ${c.dim(`(${count})`)}`);
 
-    console.log(`${icon}  ${c.bold(first.title)} ${c.dim(`(${count})`)}`);
-
-    if (verbose) {
-      const filesAndLines = diags
+    if (verbose && diags.some((d) => d.file)) {
+      const locs = diags
         .filter((d) => d.file)
-        .map((d) => `${d.file}${d.line ? ":" + d.line : ""}`)
-        .join(", ");
-      if (filesAndLines) {
-        console.log(`     ${c.dim(filesAndLines)}`);
+        .map((d) => c.dim(`${d.file}${d.line ? ":" + d.line : ""}`));
+      // Print up to 3 locations per rule
+      for (const loc of locs.slice(0, 3)) {
+        console.log(`   ${loc}`);
       }
+      if (locs.length > 3) console.log(c.dim(`   ...and ${locs.length - 3} more`));
     }
-    console.log();
   }
 
   if (result.deadTools.length > 0) {
-    console.log(c.yellow(`> !  Dead tools detected (${result.deadTools.length})`));
+    console.log(
+      ` ${c.yellow("⚠")} ${c.bold("Dead tools detected")} ${c.dim(`(${result.deadTools.length})`)}`
+    );
     if (verbose) {
-      for (const dt of result.deadTools) {
-        console.log(`     ${c.dim(dt.name)} — registered in ${c.dim(dt.registeredIn + ":" + dt.registeredAt)}`);
+      for (const dt of result.deadTools.slice(0, 3)) {
+        console.log(c.dim(`   ${dt.name} — ${dt.registeredIn}:${dt.registeredAt}`));
       }
     }
-    console.log();
   }
 
-  // Score display
+  // ── Score box ────────────────────────────────────────────
+  console.log();
+  console.log(boxTop());
+  console.log(boxBlank());
+
+  // Robot face
+  console.log(boxLine(" ┌─────┐"));
+  console.log(boxLine(" │ ◠ ◠ │"));
+  console.log(boxLine(" │  ▽  │"));
+  console.log(boxLine(" └─────┘"));
+
+  // Brand
+  console.log(boxLine(c.bold(" agent-doctor")));
+  console.log(boxBlank());
+
+  // Score line
   const scoreColor =
     result.score >= 75 ? c.green : result.score >= 50 ? c.yellow : c.red;
+  const scoreLabel = `${result.score} / 100  ${result.label}`;
+  console.log(boxLine(` ${scoreColor(c.bold(scoreLabel))}`));
+  console.log(boxBlank());
 
-  console.log(`  ${scoreColor(`${result.score} / 100`)}  ${c.bold(result.label)}`);
-  console.log(`  ${scoreColor(progressBar(result.score))}`);
+  // Progress bar
+  const bar = buildProgressBar(result.score, BOX_WIDTH - 2);
+  const coloredBar = scoreColor(bar);
+  console.log(boxLine(` ${coloredBar}`));
+  console.log(boxBlank());
+
+  // Summary line
+  const errStr = errors.length > 0 ? c.red(`✖ ${errors.length} errors`) : "";
+  const warnStr = warnings.length > 0 ? c.yellow(`⚠ ${warnings.length} warnings`) : "";
+  const parts = [errStr, warnStr].filter(Boolean).join("  ");
+  const filePart = c.dim(`across ${fileCount}/${totalFiles} files  in ${durationSec}`);
+  console.log(boxLine(` ${parts}  ${filePart}`));
+
+  console.log(boxBottom());
   console.log();
-
-  const fileCount = new Set(result.diagnostics.filter((d) => d.file).map((d) => d.file)).size;
-  const totalIssues = errors.length + warnings.length;
-  const durationSec = (result.durationMs / 1000).toFixed(1);
-
-  console.log(
-    c.dim(
-      `  ${totalIssues} issue${totalIssues !== 1 ? "s" : ""} across ${fileCount} file${fileCount !== 1 ? "s" : ""} in ${durationSec}s`
-    )
-  );
 
   if (totalIssues > 0) {
+    console.log(c.dim("  Run agent-doctor . --fix for AI-assisted fixes"));
     console.log();
-    console.log(c.dim("  Run agent-doctor . --fix to open suggested fixes."));
   }
-
-  console.log();
 }

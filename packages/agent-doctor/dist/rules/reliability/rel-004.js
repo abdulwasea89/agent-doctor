@@ -1,0 +1,30 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.rel004 = void 0;
+exports.rel004 = {
+    id: "REL-004",
+    category: "reliability",
+    severity: "error",
+    title: "No error handling on tools",
+    check(ctx) {
+        const diagnostics = [];
+        const toolCallPattern = /await\s+\w+\s*\(|\.invoke\(|\.run\(/;
+        const errorHandlingPattern = /try\s*\{|\.catch\(|except\s+/;
+        for (const [file, content] of ctx.files) {
+            if (!toolCallPattern.test(content))
+                continue;
+            if (!errorHandlingPattern.test(content)) {
+                diagnostics.push({
+                    ruleId: "REL-004",
+                    severity: "error",
+                    category: "reliability",
+                    title: "No error handling on tools",
+                    file,
+                    remediation: "Wrap tool calls in try/catch blocks to handle failures gracefully.",
+                });
+            }
+        }
+        return diagnostics;
+    },
+};
+//# sourceMappingURL=rel-004.js.map

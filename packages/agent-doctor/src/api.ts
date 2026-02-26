@@ -13,7 +13,7 @@ export async function diagnose(
   // Override config with options
   if (options.threshold !== undefined) config.threshold = options.threshold;
 
-  const { diagnostics, deadTools, projectInfo } = await runEngine(
+  const { diagnostics, deadTools, projectInfo, fileCount } = await runEngine(
     projectPath,
     config,
     {
@@ -23,7 +23,7 @@ export async function diagnose(
   );
 
   const durationMs = Date.now() - start;
-  return calculateScore(diagnostics, deadTools, projectInfo, durationMs);
+  return calculateScore(diagnostics, deadTools, projectInfo, durationMs, fileCount);
 }
 
 // Re-export types for consumers

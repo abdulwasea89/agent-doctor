@@ -7,6 +7,17 @@ export interface EngineResult {
   diagnostics: Diagnostic[];
   deadTools: DeadTool[];
   projectInfo: ProjectInfo;
+  fileCount: number;
+}
+
+// Files that belong to agent-doctor itself — never scan these
+const SELF_FILE_PATTERNS = [
+  /packages[\\/]agent-doctor[\\/]src[\\/]/,
+  /packages[\\/]agent-doctor[\\/]dist[\\/]/,
+];
+
+function isSelfFile(file: string): boolean {
+  return SELF_FILE_PATTERNS.some((p) => p.test(file));
 }
 
 export async function runEngine(
@@ -17,7 +28,13 @@ export async function runEngine(
   const { audit = true, deadTools: runDeadTools = true } = options;
 
   const projectInfo = await detectProject(projectPath);
-  const files = await loadProjectFiles(projectPath);
+  const rawFiles = await loadProjectFiles(projectPath);
+
+  // Strip agent-doctor's own source files from the scan target
+  const files = new Map<string, string>();
+  for (const [file, content] of rawFiles) {
+    if (!isSelfFile(file)) files.set(file, content);
+  }
 
   const ctx: RuleContext = { projectPath, files, projectInfo, config };
 
@@ -39,7 +56,7 @@ export async function runEngine(
     });
   });
 
-  return { diagnostics: filtered, deadTools: deadToolsList, projectInfo };
+  return { diagnostics: filtered, deadTools: deadToolsList, projectInfo, fileCount: files.size };
 }
 
 async function runAuditPass(
