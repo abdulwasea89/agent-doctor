@@ -1,4 +1,4 @@
-import type { Diagnostic, DeadTool, DiagnoseResult, Category, DimensionScore } from "./types";
+import type { Diagnostic, DeadTool, DiagnoseResult, Category, DimensionScore, AiAnalysis } from "./types";
 import type { ProjectInfo } from "./types";
 
 const WEIGHTS: Record<Category, number> = {
@@ -19,7 +19,8 @@ export function calculateScore(
   deadTools: DeadTool[],
   projectInfo: ProjectInfo,
   durationMs: number,
-  fileCount?: number
+  fileCount?: number,
+  aiAnalysis?: AiAnalysis
 ): DiagnoseResult {
   const categories = Object.keys(WEIGHTS) as Category[];
 
@@ -34,7 +35,6 @@ export function calculateScore(
       penalty += d.severity === "error" ? ERROR_PENALTY : WARN_PENALTY;
     }
 
-    // Dead tool penalty applied to reliability
     if (cat === "reliability") {
       penalty += deadTools.length * DEAD_TOOL_PENALTY;
     }
@@ -60,5 +60,6 @@ export function calculateScore(
     deadTools,
     projectInfo,
     durationMs,
+    aiAnalysis,
   };
 }

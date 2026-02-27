@@ -1,0 +1,1 @@
+const tool = { execute: async () => {} };

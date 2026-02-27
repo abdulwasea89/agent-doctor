@@ -5,6 +5,7 @@ export const obs005: Rule = {
   category: "observability",
   severity: "warn",
   title: "No LLM cost tracking",
+  protectionKey: "cost-tracking",
   check(ctx: RuleContext): Diagnostic[] {
     const costPattern = /usage\.total_tokens|promptTokens|completionTokens|cost.*track|token.*usage|usage\.tokens/i;
     let found = false;

@@ -5,6 +5,7 @@ export const obs003: Rule = {
   category: "observability",
   severity: "warn",
   title: "No alerting on tool failures",
+  protectionKey: "tool-alerting",
   check(ctx: RuleContext): Diagnostic[] {
     const alertPattern = /pagerduty|opsgenie|alertmanager|alert\.|notify\.|slack.*error|error.*slack/i;
     let found = false;

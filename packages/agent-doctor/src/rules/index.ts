@@ -122,7 +122,8 @@ export const ALL_RULES: Rule[] = [
 
 export function getApplicableRules(
   _projectInfo: ProjectInfo,
-  config: AgentDoctorConfig
+  config: AgentDoctorConfig,
+  _deepAnalysis: boolean = false
 ): Rule[] {
   return ALL_RULES.filter((r) => !config.ignore.rules.includes(r.id));
 }

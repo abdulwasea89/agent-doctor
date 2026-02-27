@@ -8,9 +8,10 @@
   ],
   "scripts": {
     "build": "npm run build --workspace=packages/agent-doctor",
-    "dev": "npm run dev --workspace=packages/agent-doctor",
+    "dev": "node packages/agent-doctor/dist/cli.js \"$@\"",
+    "dev:ws": "npm run dev --workspace=packages/agent-doctor",
     "start": "node packages/agent-doctor/dist/cli.js",
-    "doctor": "node packages/agent-doctor/dist/cli.js",
+    "doctor": "node packages/agent-doctor/dist/cli.js \"$@\"",
     "clean": "rm -rf packages/agent-doctor/dist packages/agent-doctor/*.tsbuildinfo",
     "install:all": "npm install"
   },

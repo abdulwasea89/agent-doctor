@@ -8,10 +8,13 @@ export const dep002: Rule = {
   check(ctx: RuleContext): Diagnostic[] {
     const hasCICD = Array.from(ctx.files.keys()).some(f =>
       f.includes(".github/workflows") ||
+      f.includes(".github/workflows/") ||
       f.includes(".gitlab-ci.yml") ||
       f.includes("Jenkinsfile") ||
       f.includes(".circleci") ||
-      f.includes("azure-pipelines")
+      f.includes("azure-pipelines") ||
+      f.endsWith(".yml") && f.includes("workflow") ||
+      f.endsWith(".yaml") && f.includes("ci")
     );
 
     if (!hasCICD) {

@@ -5,6 +5,7 @@ export const obs010: Rule = {
   category: "observability",
   severity: "warn",
   title: "No SLO/SLA defined",
+  protectionKey: "slo-tracking",
   check(ctx: RuleContext): Diagnostic[] {
     const sloPattern = /SLO|SLA|service.level|uptime.*%|latency.*p99|error.rate/i;
     let found = false;

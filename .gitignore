@@ -1,28 +1,3 @@
-node_modules
+node_modules/
+dist/
 .env
-.env.*
-
-# Build output — never commit dist
-dist
-**/dist
-
-# Generated reports
-agent-doctor-report.md
-agent-doctor-report.json
-**/agent-doctor-report.md
-**/agent-doctor-report.json
-
-# TypeScript build info
-*.tsbuildinfo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# IDE
-.vscode
-.idea
-
-# Logs
-*.log
-npm-debug.log*

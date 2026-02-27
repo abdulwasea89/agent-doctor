@@ -5,6 +5,7 @@ export const sec014: Rule = {
   category: "security",
   severity: "warn",
   title: "No input length enforcement",
+  protectionKey: "input-length",
   check(ctx: RuleContext): Diagnostic[] {
     const diagnostics: Diagnostic[] = [];
     const inputPattern = /user_input|message|prompt|input/i;

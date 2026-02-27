@@ -5,6 +5,7 @@ export const cfg012: Rule = {
   category: "config",
   severity: "warn",
   title: "Streaming not configured",
+  protectionKey: "stream-config",
   check(ctx: RuleContext): Diagnostic[] {
     const diagnostics: Diagnostic[] = [];
     const longOpPattern = /sleep|time\.sleep|await.*delay|long.*running|batch.*process/i;

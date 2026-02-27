@@ -5,6 +5,7 @@ export const rel002: Rule = {
   category: "reliability",
   severity: "error",
   title: "Recursive tool call loop",
+  protectionKey: "recursion-guard",
   check(ctx: RuleContext): Diagnostic[] {
     const diagnostics: Diagnostic[] = [];
     // Simple heuristic: detect if a tool definition contains a call to itself

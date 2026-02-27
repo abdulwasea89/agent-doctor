@@ -5,6 +5,7 @@ export const cmp008: Rule = {
   category: "compliance",
   severity: "error",
   title: "No human oversight for high-stakes",
+  protectionKey: "human-oversight",
   check(ctx: RuleContext): Diagnostic[] {
     const highStakePattern = /payment|transaction|medical.decision|legal.advice|prescri|diagnos/i;
     const humanOversightPattern = /human.review|human.approval|escalate|human.in.the.loop|HITL/i;

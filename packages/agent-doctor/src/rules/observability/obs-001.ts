@@ -5,6 +5,7 @@ export const obs001: Rule = {
   category: "observability",
   severity: "warn",
   title: "No structured logging",
+  protectionKey: "structured-logging",
   check(ctx: RuleContext): Diagnostic[] {
     const unstructuredPattern = /console\.log\(|print\(/;
     const structuredPattern = /winston|pino|bunyan|structlog|structuredLog|logger\.|logging\./;

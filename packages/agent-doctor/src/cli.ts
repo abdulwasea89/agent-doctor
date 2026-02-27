@@ -35,18 +35,22 @@ program
   .description("Diagnose and harden your AI agents before they hit production.")
   .version(pkg.version)
   .argument("[directory]", "Path to the agent project", ".")
-  .option("--no-audit", "Skip the audit rule pass")
+  .option("--no-rules", "Skip static rule analysis (not recommended)")
+  .option("--ai", "Add AI verification on top of static analysis (requires API key)")
+  .option("--deep", "Enable deep static analysis for atom-level error detection")
   .option("--no-dead-tools", "Skip dead tool detection")
   .option("--verbose", "Show file:line details for each issue")
   .option("--score", "Print only the numeric score (for CI)")
   .option("-y, --yes", "Skip confirmation prompts")
   .option("--project <name>", "Workspace project selector")
   .option("--diff [base]", "Scan only files changed vs base branch")
-  .option("--fix", "Generate AI-assisted fix suggestions (requires ANTHROPIC_API_KEY or OPENAI_API_KEY)")
+  .option("--fix", "Generate AI-assisted fix suggestions (requires API key)")
   .option("--output <format>", "Output format: md (default) or json", "md")
   .option("--threshold <n>", "Exit 1 if score is below this value", parseInt)
   .action(async (directory: string, opts: {
-    audit: boolean;
+    rules: boolean;
+    ai: boolean;
+    deep: boolean;
     deadTools: boolean;
     verbose: boolean;
     score: boolean;
@@ -57,7 +61,9 @@ program
     output: string;
     threshold?: number;
   }) => {
-    const projectPath = path.resolve(directory);
+    const projectPath = (directory === "." && process.env.INIT_CWD && process.env.INIT_CWD !== process.cwd())
+      ? process.env.INIT_CWD
+      : path.resolve(directory);
 
     if (!fs.existsSync(projectPath)) {
       console.error(`Error: directory not found: ${projectPath}`);
@@ -75,32 +81,31 @@ program
 
     const start = Date.now();
 
-    const { diagnostics, deadTools, projectInfo, fileCount } = await runEngine(
+    const { diagnostics, deadTools, projectInfo, fileCount, aiAnalysis } = await runEngine(
       projectPath,
       config,
       {
-        audit: opts.audit !== false,
-        deadTools: opts.deadTools !== false,
+        rules: opts.rules !== false,
+        aiVerify: opts.ai,
+        deepAnalysis: opts.deep,
+        deadTools: opts.deadTools,
       }
     );
 
     const durationMs = Date.now() - start;
-    const result = calculateScore(diagnostics, deadTools, projectInfo, durationMs, fileCount);
+    const result = calculateScore(diagnostics, deadTools, projectInfo, durationMs, fileCount, aiAnalysis);
 
     if (opts.score) {
-      // CI mode: just print the number
       console.log(result.score);
     } else {
       await renderTerminal(result, opts.verbose);
 
-      // --fix: run Mastra AI agent to generate fix suggestions
       if (opts.fix) {
         const hasKey = process.env.GEMINI_API_KEY || process.env.GROQ_API_KEY || process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY;
         if (!hasKey) {
           console.error("  ✖ --fix requires ANTHROPIC_API_KEY or OPENAI_API_KEY to be set.");
         } else {
           console.log("  Generating AI fix suggestions...\n");
-          // Build file snippets map for context
           const snippets = new Map<string, string>();
           for (const d of diagnostics) {
             if (d.file && !snippets.has(d.file)) {
@@ -123,7 +128,6 @@ program
         }
       }
 
-      // Write report
       if (outputFormat === "json") {
         const reportPath = writeJsonReport(result, projectPath);
         console.log(`  Report written to: ${reportPath}\n`);
@@ -133,7 +137,6 @@ program
       }
     }
 
-    // Exit with code 1 if below threshold
     if (threshold !== undefined && result.score < threshold) {
       process.exit(1);
     }

@@ -5,6 +5,7 @@ export const sec012: Rule = {
   category: "security",
   severity: "warn",
   title: "No secrets rotation policy",
+  protectionKey: "env-validation",
   check(ctx: RuleContext): Diagnostic[] {
     const diagnostics: Diagnostic[] = [];
     const apiKeyPattern = /API_KEY|api_key|SECRET|OPENAI_API_KEY|ANTHROPIC_API_KEY/;

@@ -6,7 +6,8 @@ export function writeJsonReport(
   result: DiagnoseResult,
   outputDir: string
 ): string {
-  const outputPath = path.join(outputDir, "agent-doctor-report.json");
+  const ts = new Date().toISOString().replace(/:/g, "-").split(".")[0];
+  const outputPath = path.join(outputDir, `agent-doctor-report-${ts}.json`);
   const content = JSON.stringify(result, null, 2);
   fs.writeFileSync(outputPath, content, "utf-8");
   return outputPath;

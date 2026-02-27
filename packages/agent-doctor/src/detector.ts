@@ -196,7 +196,7 @@ export async function loadProjectFiles(projectPath: string): Promise<Map<string,
 
   // Also include config files
   const configFiles = await glob(
-    "**/{Dockerfile,docker-compose.yml,docker-compose.yaml,.env,.env.*,*.yaml,*.yml,*.json,*.toml,*.ini,Makefile,requirements*.txt,pyproject.toml}",
+    "**/{Dockerfile,docker-compose.yml,docker-compose.yaml,.env,.env.*,*.yaml,*.yml,*.json,*.toml,*.ini,Makefile,requirements*.txt,pyproject.toml,*.md,.github/**}",
     {
       cwd: projectPath,
       ignore: [...IGNORE, "**/package-lock.json", "**/yarn.lock"],
@@ -206,10 +206,27 @@ export async function loadProjectFiles(projectPath: string): Promise<Map<string,
 
   const allFiles = [...new Set([...files, ...configFiles])];
   const map = new Map<string, string>();
+  const MAX_FILE_SIZE = 20 * 1024; // 20KB
 
   for (const file of allFiles) {
     try {
-      const content = fs.readFileSync(path.join(projectPath, file), "utf-8");
+      const fullPath = path.join(projectPath, file);
+      const stats = fs.statSync(fullPath);
+      
+      let content: string;
+      if (stats.size > MAX_FILE_SIZE) {
+        const fd = fs.openSync(fullPath, 'r');
+        const firstBuffer = Buffer.alloc(15360);
+        fs.readSync(fd, firstBuffer, 0, 15360, 0);
+        const lastBuffer = Buffer.alloc(5120);
+        fs.readSync(fd, lastBuffer, 0, 5120, stats.size - 15360);
+        fs.closeSync(fd);
+        const firstPart = firstBuffer.toString('utf-8');
+        const lastPart = lastBuffer.toString('utf-8');
+        content = firstPart + "\n\n... [truncated " + (stats.size - MAX_FILE_SIZE) + " bytes] ...\n\n" + lastPart;
+      } else {
+        content = fs.readFileSync(fullPath, "utf-8");
+      }
       map.set(file, content);
     } catch {
       // ignore

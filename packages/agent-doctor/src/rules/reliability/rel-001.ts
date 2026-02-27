@@ -5,6 +5,7 @@ export const rel001: Rule = {
   category: "reliability",
   severity: "error",
   title: "No max_iterations limit",
+  protectionKey: "max-iterations",
   check(ctx: RuleContext): Diagnostic[] {
     const agentPattern = /AgentExecutor|createAgent|new Agent|\.run\(/;
     const iterPattern = /max_iterations|maxIterations|max_steps|maxSteps/;

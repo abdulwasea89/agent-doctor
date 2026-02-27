@@ -5,6 +5,7 @@ export const obs004: Rule = {
   category: "observability",
   severity: "warn",
   title: "No error tracking",
+  protectionKey: "error-tracking",
   check(ctx: RuleContext): Diagnostic[] {
     const errorTrackingPattern = /sentry|datadog|rollbar|bugsnag|honeybadger|airbrake/i;
     let found = false;

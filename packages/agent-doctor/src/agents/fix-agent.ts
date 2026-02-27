@@ -5,14 +5,14 @@ import type { DiagnoseResult, Diagnostic } from "../types";
 type MastraAgent = { generate: (prompt: string) => Promise<{ text: string }> };
 
 function buildModel() {
-  // Priority: Gemini → Groq
+  // Priority: Groq → Gemini
+  if (process.env.GROQ_API_KEY) {
+    const groq = createGroq({ apiKey: process.env.GROQ_API_KEY });
+    return groq("moonshotai/kimi-k2-instruct-0905");
+  }
   if (process.env.GEMINI_API_KEY) {
     const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
     return google("gemini-2.0-flash");
-  }
-  if (process.env.GROQ_API_KEY) {
-    const groq = createGroq({ apiKey: process.env.GROQ_API_KEY });
-    return groq("llama-3.3-70b-versatile");
   }
   return null;
 }

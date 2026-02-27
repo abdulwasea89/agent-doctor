@@ -17,6 +17,7 @@ export interface Diagnostic {
   line?: number;
   column?: number;
   remediation: string;
+  suggestion?: string;
 }
 
 export interface DeadTool {
@@ -49,6 +50,7 @@ export interface RuleContext {
   files: Map<string, string>;
   projectInfo: ProjectInfo;
   config: AgentDoctorConfig;
+  deepAnalysis?: boolean;
 }
 
 export interface Rule {
@@ -56,12 +58,34 @@ export interface Rule {
   category: Category;
   severity: Severity;
   title: string;
+  protectionKey?: string;
   check(ctx: RuleContext): Diagnostic[];
 }
 
 export interface DimensionScore {
   score: number;
   max: number;
+}
+
+export interface AiVerification {
+  ruleId: string;
+  confirmed: boolean;
+  reason: string;
+}
+
+export interface AiAnalysis {
+  verifications: AiVerification[];
+  adjustments: Array<{
+    ruleId: string;
+    newSeverity: Severity;
+    reason: string;
+  }>;
+  additionalFindings: Diagnostic[];
+  summary: string;
+  tokensUsed: number;
+  modelUsed: string;
+  confirmedCount: number;
+  dismissedCount: number;
 }
 
 export interface DiagnoseResult {
@@ -73,6 +97,7 @@ export interface DiagnoseResult {
   projectInfo: ProjectInfo;
   durationMs: number;
   files?: number; // total files scanned
+  aiAnalysis?: AiAnalysis;
 }
 
 export interface DiagnoseOptions {

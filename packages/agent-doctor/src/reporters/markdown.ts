@@ -15,7 +15,8 @@ export function writeMarkdownReport(
   result: DiagnoseResult,
   outputDir: string
 ): string {
-  const outputPath = path.join(outputDir, "agent-doctor-report.md");
+  const ts = new Date().toISOString().replace(/:/g, "-").split(".")[0];
+  const outputPath = path.join(outputDir, `agent-doctor-report-${ts}.md`);
 
   const lines: string[] = [];
   const date = new Date().toISOString().split("T")[0];
@@ -60,6 +61,9 @@ export function writeMarkdownReport(
         lines.push(`**Location:** \`${d.file}${d.line ? ":" + d.line : ""}\``);
       }
       lines.push(`**Fix:** ${d.remediation}`);
+      if (d.suggestion) {
+        lines.push(`**Suggestion:** ${d.suggestion}`);
+      }
       lines.push("");
     }
   }
@@ -74,6 +78,9 @@ export function writeMarkdownReport(
         lines.push(`**Location:** \`${d.file}${d.line ? ":" + d.line : ""}\``);
       }
       lines.push(`**Fix:** ${d.remediation}`);
+      if (d.suggestion) {
+        lines.push(`**Suggestion:** ${d.suggestion}`);
+      }
       lines.push("");
     }
   }
@@ -88,6 +95,55 @@ export function writeMarkdownReport(
       lines.push(`- \`${dt.name}\` — registered in \`${dt.registeredIn}:${dt.registeredAt}\``);
     }
     lines.push("");
+  }
+
+  // AI Analysis section
+  if (result.aiAnalysis) {
+    const ai = result.aiAnalysis;
+    lines.push("## AI Analysis");
+    lines.push("");
+    lines.push(`**Model:** ${ai.modelUsed}  |  **Tokens:** ${ai.tokensUsed.toLocaleString()}`);
+    lines.push(`**Summary:** ${ai.summary}`);
+    lines.push("");
+
+    if (ai.adjustments.length > 0) {
+      lines.push("### Adjustments");
+      lines.push("");
+      for (const adj of ai.adjustments) {
+        lines.push(`- \`${adj.ruleId}\` → \`${adj.newSeverity}\` — ${adj.reason}`);
+      }
+      lines.push("");
+    }
+
+    if (ai.additionalFindings.length > 0) {
+      lines.push("### Additional Findings");
+      lines.push("");
+      for (const f of ai.additionalFindings) {
+        const icon = f.severity === "error" ? "🔴" : "🟡";
+        lines.push(`### ${icon} [${f.ruleId}] ${f.title}`);
+        lines.push(`**Category:** ${CATEGORY_LABELS[f.category] ?? f.category}`);
+        if (f.file) {
+          lines.push(`**Location:** \`${f.file}${f.line ? ":" + f.line : ""}\``);
+        }
+        lines.push(`**Fix:** ${f.remediation}`);
+        if (f.suggestion) {
+          lines.push(`**Suggestion:** ${f.suggestion}`);
+        }
+        lines.push("");
+      }
+    }
+
+    const dismissed = ai.verifications?.filter((v) => !v.confirmed) ?? [];
+    if (dismissed.length > 0) {
+      lines.push("## Dismissed Findings");
+      lines.push("");
+      lines.push("The following static findings were reviewed by AI and determined to be false positives:");
+      lines.push("");
+      for (const v of dismissed) {
+        lines.push(`- \`${v.ruleId}\` — ${v.reason}`);
+      }
+      lines.push("");
+    }
   }
 
   const content = lines.join("\n");
